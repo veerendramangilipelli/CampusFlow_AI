@@ -3,7 +3,7 @@ import axios from 'axios';
 export const SESSION_KEY = 'campusflow_session';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5454/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8081/api',
   headers: { 'Content-Type': 'application/json' },
 });
 

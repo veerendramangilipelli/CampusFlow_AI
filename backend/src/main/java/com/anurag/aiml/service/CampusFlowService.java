@@ -167,17 +167,58 @@ public class CampusFlowService {
 
     public List<Map<String, Object>> getPlacements() {
         return List.of(
-                Map.of("id", 1, "company", "TCS", "role", "Software Engineer", "date", "2026-10-28", "deadline", "2026-10-22", "minCgpa", 7.0, "minAttendance", 75, "departments", "All departments", "skills", List.of("Java", "SQL", "Aptitude"), "registered", 64, "eligible", true, "reason", ""),
-                Map.of("id", 2, "company", "Infosys", "role", "Systems Engineer", "date", "2026-11-04", "deadline", "2026-10-30", "minCgpa", 6.5, "minAttendance", 75, "departments", "CSE, AI & ML, ECE", "skills", List.of("Java", "Problem Solving"), "registered", 41, "eligible", true, "reason", ""),
-                Map.of("id", 3, "company", "Zoho", "role", "Member Technical Staff", "date", "2026-11-10", "deadline", "2026-11-03", "minCgpa", 8.5, "minAttendance", 80, "departments", "CSE, AI & ML", "skills", List.of("DSA", "System Design"), "registered", 18, "eligible", false, "reason", "Minimum CGPA 8.5 required"),
-                Map.of("id", 4, "company", "Capgemini", "role", "Analyst", "date", "2026-11-15", "deadline", "2026-11-08", "minCgpa", 6.0, "minAttendance", 75, "departments", "All departments", "skills", List.of("SQL", "Communication"), "registered", 5, "eligible", true, "reason", ""));
+                Map.<String, Object>ofEntries(
+                        Map.entry("id", 1), Map.entry("company", "TCS"), Map.entry("role", "Software Engineer"),
+                        Map.entry("date", "2026-10-28"), Map.entry("deadline", "2026-10-22"), Map.entry("minCgpa", 7.0),
+                        Map.entry("minAttendance", 75), Map.entry("departments", "All departments"),
+                        Map.entry("skills", List.of("Java", "SQL", "Aptitude")), Map.entry("registered", 64),
+                        Map.entry("eligible", true), Map.entry("reason", "")),
+                Map.<String, Object>ofEntries(
+                        Map.entry("id", 2), Map.entry("company", "Infosys"), Map.entry("role", "Systems Engineer"),
+                        Map.entry("date", "2026-11-04"), Map.entry("deadline", "2026-10-30"), Map.entry("minCgpa", 6.5),
+                        Map.entry("minAttendance", 75), Map.entry("departments", "CSE, AI & ML, ECE"),
+                        Map.entry("skills", List.of("Java", "Problem Solving")), Map.entry("registered", 41),
+                        Map.entry("eligible", true), Map.entry("reason", "")),
+                Map.<String, Object>ofEntries(
+                        Map.entry("id", 3), Map.entry("company", "Zoho"), Map.entry("role", "Member Technical Staff"),
+                        Map.entry("date", "2026-11-10"), Map.entry("deadline", "2026-11-03"), Map.entry("minCgpa", 8.5),
+                        Map.entry("minAttendance", 80), Map.entry("departments", "CSE, AI & ML"),
+                        Map.entry("skills", List.of("DSA", "System Design")), Map.entry("registered", 18),
+                        Map.entry("eligible", false), Map.entry("reason", "Minimum CGPA 8.5 required")),
+                Map.<String, Object>ofEntries(
+                        Map.entry("id", 4), Map.entry("company", "Capgemini"), Map.entry("role", "Analyst"),
+                        Map.entry("date", "2026-11-15"), Map.entry("deadline", "2026-11-08"), Map.entry("minCgpa", 6.0),
+                        Map.entry("minAttendance", 75), Map.entry("departments", "All departments"),
+                        Map.entry("skills", List.of("SQL", "Communication")), Map.entry("registered", 5),
+                        Map.entry("eligible", true), Map.entry("reason", "")));
     }
 
     public List<Map<String, Object>> getEvents() {
         return List.of(
-                Map.of("id", 1, "title", "AI & Data Hackathon", "category", "Workshop", "date", "2026-10-18", "start", "09:00", "end", "13:00", "venue", "Main Auditorium", "building", "Block A", "floor", 2, "room", "A-201", "department", "Computer Science", "eligibility", "All students", "deadline", "2026-10-16", "total", 120, "registered", 88, "approval", "APPROVED", "description", "Hands-on build challenge for AI and data projects."),
-                Map.of("id", 2, "title", "Campus Placement Prep", "category", "Seminar", "date", "2026-10-21", "start", "15:00", "end", "17:00", "venue", "Innovation Hall", "building", "Block C", "floor", 1, "room", "C-102", "department", "Training & Placement", "eligibility", "Final year students", "deadline", "2026-10-19", "total", 180, "registered", 146, "approval", "APPROVED", "description", "Resume, mock interviews and aptitude bootcamp."),
-                Map.of("id", 3, "title", "Cloud Skills Day", "category", "Workshop", "date", "2026-10-24", "start", "10:30", "end", "12:30", "venue", "Tech Lab", "building", "Block B", "floor", 3, "room", "B-312", "department", "Computer Science", "eligibility", "Open to all", "deadline", "2026-10-22", "total", 80, "registered", 72, "approval", "PENDING", "description", "Intro to Docker, Kubernetes and cloud deployment."));
+                Map.<String, Object>ofEntries(
+                        Map.entry("id", 1), Map.entry("title", "AI & Data Hackathon"), Map.entry("category", "Workshop"),
+                        Map.entry("date", "2026-10-18"), Map.entry("start", "09:00"), Map.entry("end", "13:00"),
+                        Map.entry("venue", "Main Auditorium"), Map.entry("building", "Block A"), Map.entry("floor", 2),
+                        Map.entry("room", "A-201"), Map.entry("department", "Computer Science"),
+                        Map.entry("eligibility", "All students"), Map.entry("deadline", "2026-10-16"),
+                        Map.entry("total", 120), Map.entry("registered", 88), Map.entry("approval", "APPROVED"),
+                        Map.entry("description", "Hands-on build challenge for AI and data projects.")),
+                Map.<String, Object>ofEntries(
+                        Map.entry("id", 2), Map.entry("title", "Campus Placement Prep"), Map.entry("category", "Seminar"),
+                        Map.entry("date", "2026-10-21"), Map.entry("start", "15:00"), Map.entry("end", "17:00"),
+                        Map.entry("venue", "Innovation Hall"), Map.entry("building", "Block C"), Map.entry("floor", 1),
+                        Map.entry("room", "C-102"), Map.entry("department", "Training & Placement"),
+                        Map.entry("eligibility", "Final year students"), Map.entry("deadline", "2026-10-19"),
+                        Map.entry("total", 180), Map.entry("registered", 146), Map.entry("approval", "APPROVED"),
+                        Map.entry("description", "Resume, mock interviews and aptitude bootcamp.")),
+                Map.<String, Object>ofEntries(
+                        Map.entry("id", 3), Map.entry("title", "Cloud Skills Day"), Map.entry("category", "Workshop"),
+                        Map.entry("date", "2026-10-24"), Map.entry("start", "10:30"), Map.entry("end", "12:30"),
+                        Map.entry("venue", "Tech Lab"), Map.entry("building", "Block B"), Map.entry("floor", 3),
+                        Map.entry("room", "B-312"), Map.entry("department", "Computer Science"),
+                        Map.entry("eligibility", "Open to all"), Map.entry("deadline", "2026-10-22"),
+                        Map.entry("total", 80), Map.entry("registered", 72), Map.entry("approval", "PENDING"),
+                        Map.entry("description", "Intro to Docker, Kubernetes and cloud deployment.")));
     }
 
     public List<String> getEventCategories() {
@@ -199,15 +240,14 @@ public class CampusFlowService {
                 Map.of("id", 4, "name", "Sana Iqbal", "email", "admin@campusflow.test", "role", "ADMIN", "department", "Administration", "status", "ACTIVE"));
     }
 
-    public List<Map<String, Object>> getFacultyStats() {
+    public Map<String, Object> getFacultyStats() {
         return Map.of(
                 "performance", List.of(76, 82, 80, 88, 92),
                 "insights", List.of("80% of students are on track", "Need more revision sessions in DBMS"),
                 "schedule", List.of(Map.of("time", "Mon 09:00", "course", "Data Structures"), Map.of("time", "Tue 11:00", "course", "Database Systems")),
                 "toReview", List.of(
                         Map.of("student", "Nisha Patel", "assignment", "REST API Design", "course", "Web Technologies", "submitted", "2026-10-10"),
-                        Map.of("student", "Rahul Sharma", "assignment", "ER Diagram Lab", "course", "Database Systems", "submitted", "2026-10-11")))
-                .entrySet().stream().collect(java.util.stream.Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                        Map.of("student", "Rahul Sharma", "assignment", "ER Diagram Lab", "course", "Database Systems", "submitted", "2026-10-11")));
     }
 
     public Map<String, Object> getPlacementStats() {
