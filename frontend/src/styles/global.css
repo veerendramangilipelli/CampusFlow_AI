@@ -1,0 +1,90 @@
+/* CampusFlow design tokens and base styles */
+:root {
+  --bg: #F4F6FB;
+  --surface: #FFFFFF;
+  --text: #1B2140;
+  --muted: #5B6385;
+  --border: #DDE2F0;
+  --divider: #F0F2F9;
+  --track: #E8EBF5;
+
+  --sidebar: #151A3C;
+  --sidebar-hover: #222855;
+  --sidebar-text: #B9C0E6;
+  --sidebar-label: #6F78AD;
+
+  --primary: #5B5BF0;
+  --primary-hover: #4A4AD8;
+  --primary-dark: #4338CA;
+  --primary-soft: #E6E6FD;
+  --primary-ink: #3730A3;
+
+  --success: #0E8F5B;
+  --success-soft: #DDF6EA;
+  --success-ink: #0A6B43;
+  --warning: #E5A100;
+  --warning-soft: #FFF1D6;
+  --warning-ink: #8A5300;
+  --danger: #E5484D;
+  --danger-soft: #FDE3E4;
+  --danger-ink: #A4151B;
+
+  --radius-card: 16px;
+  --radius-ctl: 12px;
+  --radius-pill: 999px;
+  --shadow-card: 0 1px 3px rgba(27, 33, 64, 0.06), 0 8px 24px rgba(27, 33, 64, 0.04);
+  --shadow-pop: 0 12px 40px rgba(21, 26, 60, 0.22);
+  --font: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+}
+
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html, body, #root { min-height: 100%; }
+
+body {
+  margin: 0;
+  font-family: var(--font);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, p { margin: 0; }
+a { color: inherit; text-decoration: none; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+ul { margin: 0; padding: 0; list-style: none; }
+
+:focus-visible {
+  outline: 3px solid rgba(91, 91, 240, 0.45);
+  outline-offset: 2px;
+}
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+
+/* Utilities */
+.muted { color: var(--muted); }
+.text-sm { font-size: 12.5px; }
+.fw-600 { font-weight: 600; }
+.fw-700 { font-weight: 700; }
+.flex { display: flex; }
+.wrap { flex-wrap: wrap; }
+.between { justify-content: space-between; }
+.center { align-items: center; }
+.gap-8 { gap: 8px; }
+.gap-12 { gap: 12px; }
+.gap-16 { gap: 16px; }
+.grow { flex: 1; min-width: 0; }
+.mt-16 { margin-top: 16px; }
+.stack { display: flex; flex-direction: column; gap: 18px; }
+.grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(380px, 100%), 1fr)); gap: 18px; }
+.grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 18px; }
+.grid-main { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 18px; }
+@media (max-width: 1000px) { .grid-main { grid-template-columns: 1fr; } }
