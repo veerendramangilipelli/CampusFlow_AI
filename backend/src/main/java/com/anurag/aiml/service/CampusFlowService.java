@@ -3,18 +3,25 @@ package com.anurag.aiml.service;
 import com.anurag.aiml.entity.User;
 import com.anurag.aiml.entity.UserRole;
 import com.anurag.aiml.entity.UserStatus;
+import com.anurag.aiml.entity.AssignmentSubmission;
+import com.anurag.aiml.repository.AssignmentSubmissionRepository;
 import com.anurag.aiml.repository.UserRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDate;
 import java.util.*;
 
 @Service
 public class CampusFlowService {
 
     private final UserRepository userRepository;
+    private final AssignmentSubmissionRepository assignmentSubmissionRepository;
 
-    public CampusFlowService(UserRepository userRepository) {
+    public CampusFlowService(UserRepository userRepository, AssignmentSubmissionRepository assignmentSubmissionRepository) {
         this.userRepository = userRepository;
+        this.assignmentSubmissionRepository = assignmentSubmissionRepository;
     }
 
     public Map<String, Object> dashboardForUser(User user) {
@@ -38,11 +45,10 @@ public class CampusFlowService {
                     Map.of("label", "Assessments", "value", "4 / 6"),
                     Map.of("label", "Attendance", "value", "87%")
             ));
-            summary.put("upcomingAssignments", List.of(
-                    Map.of("id", 1, "title", "REST API Design", "course", "Web Technologies", "due", "2026-10-11", "status", "PENDING", "maxMarks", 20, "marks", null),
-                    Map.of("id", 2, "title", "ER Diagram Lab", "course", "Database Systems", "due", "2026-10-14", "status", "IN_PROGRESS", "maxMarks", 25, "marks", null),
-                    Map.of("id", 3, "title", "Sorting Algorithms Report", "course", "Data Structures", "due", "2026-10-16", "status", "IN_PROGRESS", "maxMarks", 30, "marks", null)
-            ));
+            summary.put("upcomingAssignments", getAssignmentsForStudent(user.getEmail()).stream()
+                    .filter(assignment -> !"GRADED".equals(assignment.get("status")))
+                    .limit(3)
+                    .toList());
             summary.put("attendanceByCourse", List.of(
                     Map.of("course", "Data Structures", "attended", 46, "total", 50, "percent", 92),
                     Map.of("course", "Database Systems", "attended", 44, "total", 50, "percent", 88),
@@ -83,12 +89,79 @@ public class CampusFlowService {
 
     public List<Map<String, Object>> getAssignmentsForStudent() {
         return List.of(
-                Map.of("id", 1, "title", "REST API Design", "course", "Web Technologies", "due", "2026-10-11", "maxMarks", 20, "status", "PENDING", "marks", null, "submitted", 31, "total", 48),
-                Map.of("id", 2, "title", "ER Diagram Lab", "course", "Database Systems", "due", "2026-10-14", "maxMarks", 25, "status", "IN_PROGRESS", "marks", null, "submitted", 22, "total", 48),
-                Map.of("id", 3, "title", "Sorting Algorithms Report", "course", "Data Structures", "due", "2026-10-16", "maxMarks", 30, "status", "IN_PROGRESS", "marks", null, "submitted", 18, "total", 48),
-                Map.of("id", 4, "title", "Unit Test Case Set", "course", "Software Engineering", "due", "2026-10-09", "maxMarks", 20, "status", "SUBMITTED", "marks", null, "submitted", 45, "total", 48),
-                Map.of("id", 5, "title", "SQL Joins Worksheet", "course", "Database Systems", "due", "2026-10-02", "maxMarks", 15, "status", "GRADED", "marks", 13, "submitted", 48, "total", 48),
-                Map.of("id", 6, "title", "Linked List Implementation", "course", "Data Structures", "due", "2026-09-28", "maxMarks", 20, "status", "GRADED", "marks", 17, "submitted", 47, "total", 48));
+                assignment(1, "REST API Design", "Web Technologies", "2026-10-11", 20, "PENDING", null, 31, 48),
+                assignment(2, "ER Diagram Lab", "Database Systems", "2026-10-14", 25, "IN_PROGRESS", null, 22, 48),
+                assignment(3, "Sorting Algorithms Report", "Data Structures", "2026-10-16", 30, "IN_PROGRESS", null, 18, 48),
+                assignment(4, "Unit Test Case Set", "Software Engineering", "2026-10-09", 20, "SUBMITTED", null, 45, 48),
+                assignment(5, "SQL Joins Worksheet", "Database Systems", "2026-10-02", 15, "GRADED", 13, 48, 48),
+                assignment(6, "Linked List Implementation", "Data Structures", "2026-09-28", 20, "GRADED", 17, 47, 48));
+    }
+
+    public List<Map<String, Object>> getAssignmentsForStudent(String email) {
+        User student = getStudent(email);
+        List<Map<String, Object>> assignments = new ArrayList<>();
+        for (Map<String, Object> record : getAssignmentsForStudent()) {
+            Map<String, Object> assignment = new LinkedHashMap<>(record);
+            Optional<AssignmentSubmission> submission = assignmentSubmissionRepository
+                    .findByAssignmentIdAndStudent_Id((Long) record.get("id"), student.getId());
+            if (submission.isPresent()) {
+                assignment.put("status", "SUBMITTED");
+                assignment.put("submittedAt", submission.get().getSubmittedAt());
+            }
+            assignments.add(assignment);
+        }
+        return assignments;
+    }
+
+    public Map<String, Object> getAssignment(Long id) {
+        return getAssignmentsForStudent().stream()
+                .filter(assignment -> assignment.get("id").equals(id))
+                .findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Assignment not found"));
+    }
+
+    public Optional<AssignmentSubmission> getSubmission(Long assignmentId, String email) {
+        User student = getStudent(email);
+        return assignmentSubmissionRepository.findByAssignmentIdAndStudent_Id(assignmentId, student.getId());
+    }
+
+    public AssignmentSubmission submitAssignment(Long assignmentId, String email, String content) {
+        User student = getStudent(email);
+        Map<String, Object> assignment = getAssignment(assignmentId);
+        if (assignmentSubmissionRepository.findByAssignmentIdAndStudent_Id(assignmentId, student.getId()).isPresent()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "This assignment has already been submitted");
+        }
+        if ("GRADED".equals(assignment.get("status")) || "SUBMITTED".equals(assignment.get("status"))) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "This assignment is not accepting submissions");
+        }
+        if (LocalDate.now().isAfter(LocalDate.parse((String) assignment.get("due")))) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The assignment deadline has passed");
+        }
+        return assignmentSubmissionRepository.save(new AssignmentSubmission(assignmentId, student, content.trim()));
+    }
+
+    private User getStudent(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        if (user.getRole() != UserRole.STUDENT) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Student access is required");
+        }
+        return user;
+    }
+
+    private Map<String, Object> assignment(long id, String title, String course, String due, int maxMarks,
+                                           String status, Integer marks, int submitted, int total) {
+        Map<String, Object> record = new LinkedHashMap<>();
+        record.put("id", id);
+        record.put("title", title);
+        record.put("course", course);
+        record.put("due", due);
+        record.put("maxMarks", maxMarks);
+        record.put("status", status);
+        record.put("marks", marks);
+        record.put("submitted", submitted);
+        record.put("total", total);
+        return record;
     }
 
     public List<Map<String, Object>> getAttendanceByCourse() {

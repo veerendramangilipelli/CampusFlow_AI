@@ -71,6 +71,11 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
+        if (request.role() == UserRole.ADMIN) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("message", "Administrator accounts are provisioned by the system"));
+        }
+
         String email = request.email().trim();
         if (userRepository.existsByEmail(email)) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", "Email already registered"));
@@ -91,6 +96,9 @@ public class AuthController {
         user.setProgram(request.program());
         user.setAcademicYear(request.academicYear());
         user.setSemester(request.semester());
+        user.setEmployeeId(request.employeeId());
+        user.setDesignation(request.designation());
+        user.setPlacementDepartment(request.placementDepartment());
 
         userRepository.save(user);
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("message", "Registration successful"));
@@ -108,5 +116,8 @@ public class AuthController {
             String studentId,
             String program,
             String academicYear,
-            Integer semester) {}
+            Integer semester,
+            String employeeId,
+            String designation,
+            String placementDepartment) {}
 }

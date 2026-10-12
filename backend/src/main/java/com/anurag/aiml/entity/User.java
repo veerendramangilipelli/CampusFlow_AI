@@ -45,6 +45,15 @@ public class User {
     @Column
     private Integer semester;
 
+    @Column
+    private String employeeId;
+
+    @Column
+    private String designation;
+
+    @Column
+    private String placementDepartment;
+
     @Column(nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
@@ -95,6 +104,15 @@ public class User {
 
     public Integer getSemester() { return semester; }
     public void setSemester(Integer semester) { this.semester = semester; }
+
+    public String getEmployeeId() { return employeeId; }
+    public void setEmployeeId(String employeeId) { this.employeeId = employeeId; }
+
+    public String getDesignation() { return designation; }
+    public void setDesignation(String designation) { this.designation = designation; }
+
+    public String getPlacementDepartment() { return placementDepartment; }
+    public void setPlacementDepartment(String placementDepartment) { this.placementDepartment = placementDepartment; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

@@ -1,6 +1,7 @@
 package com.anurag.aiml.security;
 
 import com.anurag.aiml.repository.UserRepository;
+import jakarta.servlet.DispatcherType;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -39,13 +40,19 @@ public class SecurityConfig {
                 .cors(cors -> {})
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/register").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/health").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
                         .requestMatchers("/api/student/**").hasRole("STUDENT")
                         .requestMatchers("/api/faculty/**").hasRole("FACULTY")
+                        .requestMatchers(HttpMethod.GET, "/api/placements/drives", "/api/placements/readiness/me").hasAnyRole("STUDENT", "PLACEMENT_OFFICER")
+                        .requestMatchers(HttpMethod.POST, "/api/placements/drives/*/register").hasRole("STUDENT")
                         .requestMatchers("/api/placements/**").hasRole("PLACEMENT_OFFICER")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/assignments/me", "/api/assignments/*", "/api/assignments/*/submissions/me").hasRole("STUDENT")
+                        .requestMatchers(HttpMethod.POST, "/api/assignments/*/submissions").hasRole("STUDENT")
+                        .requestMatchers(HttpMethod.GET, "/api/assignments").hasRole("FACULTY")
                         .requestMatchers("/api/notifications/**", "/api/assistant/**", "/api/search", "/api/events/**", "/api/courses/**", "/api/assignments/**", "/api/attendance/**", "/api/results/**", "/api/skills/**", "/api/users/**", "/api/venues/**").authenticated()
                         .anyRequest().authenticated())
                 .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()));
