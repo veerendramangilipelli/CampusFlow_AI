@@ -2,8 +2,9 @@ FROM maven:3.9.16-eclipse-temurin-17 AS build
 
 WORKDIR /workspace
 COPY pom.xml ./
+COPY .mvn/settings.xml .mvn/settings.xml
 COPY src/ src/
-RUN mvn -B -ntp package -DskipTests
+RUN mvn -s .mvn/settings.xml -B -ntp package -DskipTests
 
 FROM eclipse-temurin:17-jre-jammy
 
