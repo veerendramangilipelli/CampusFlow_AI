@@ -1,7 +1,8 @@
+
 spring:
   datasource:
-    url: jdbc:mysql://${DB_HOST}:${DB_PORT:22573}/${DB_NAME:campusflow_ai}?sslMode=REQUIRED
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${DATABASE_URL}
+    driver-class-name: org.postgresql.Driver
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
   jpa:
@@ -11,9 +12,6 @@ spring:
     properties:
       hibernate:
         format_sql: true
-  h2:
-    console:
-      enabled: false
 
 jwt:
   secret: ${JWT_SECRET}
@@ -22,3 +20,6 @@ jwt:
 app:
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS}
+
+server:
+  port: ${PORT:8081}
