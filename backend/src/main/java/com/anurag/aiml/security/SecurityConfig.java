@@ -47,7 +47,6 @@ public class SecurityConfig {
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/register").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/health").permitAll()
-                        .requestMatchers("/h2-console/**").permitAll()
                         .requestMatchers("/api/student/**").hasRole("STUDENT")
                         .requestMatchers("/api/faculty/**").hasRole("FACULTY")
                         .requestMatchers(HttpMethod.GET, "/api/placements/drives", "/api/placements/readiness/me").hasAnyRole("STUDENT", "PLACEMENT_OFFICER")
@@ -58,8 +57,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/assignments/*/submissions").hasRole("STUDENT")
                         .requestMatchers(HttpMethod.GET, "/api/assignments").hasRole("FACULTY")
                         .requestMatchers("/api/notifications/**", "/api/assistant/**", "/api/search", "/api/events/**", "/api/courses/**", "/api/assignments/**", "/api/attendance/**", "/api/results/**", "/api/skills/**", "/api/users/**", "/api/venues/**").authenticated()
-                        .anyRequest().authenticated())
-                .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()));
+                        .anyRequest().authenticated());
 
         http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();

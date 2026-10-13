@@ -19,8 +19,7 @@ public class AssignmentSubmission {
     @JoinColumn(name = "student_id", nullable = false)
     private User student;
 
-    @Lob
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "text")
     private String content;
 
     @Column(nullable = false)

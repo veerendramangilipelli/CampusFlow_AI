@@ -5,10 +5,12 @@ import com.anurag.aiml.entity.UserRole;
 import com.anurag.aiml.entity.UserStatus;
 import com.anurag.aiml.repository.UserRepository;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 @Component
+@ConditionalOnProperty(prefix = "app.demo-data", name = "enabled", havingValue = "true")
 public class DemoDataInitializer implements CommandLineRunner {
 
     private final UserRepository userRepository;

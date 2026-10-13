@@ -11,9 +11,9 @@ This is not yet a complete production campus-management platform. Many screens u
 | Frontend | React 18, Vite 5, React Router 6, Axios; dev server on port 5173 |
 | Backend | Java 17, Spring Boot 3.3.5, Maven Wrapper 3.9.16; API on port 8081 by default |
 | Authentication | Registration, BCrypt password hashing, login, JWT bearer tokens, role-based route checks |
-| Local database | H2 in-memory database; all data is lost when the backend process exits |
-| Production database configuration | Optional `prod` profile for managed MySQL; deployment credentials are external environment variables |
-| Assignment work | Hardcoded assignment catalogue; student text submissions are stored in H2/MySQL and scoped to the authenticated student |
+| Database | Supabase-hosted PostgreSQL; connection settings are backend-only environment variables |
+| Schema management | Supabase CLI migration in `supabase/migrations`; Hibernate validates the schema at startup |
+| Assignment work | Hardcoded assignment catalogue; student text submissions are stored in PostgreSQL and scoped to the authenticated student |
 | Automated checks | Maven tests and Vite production build; see [Verification](#verification) |
 
 ## Repository layout
@@ -28,6 +28,9 @@ CampusFlow/
 │   ├── Dockerfile                Java 17 production image
 │   ├── mvnw, mvnw.cmd            Maven Wrapper launchers
 │   └── pom.xml                   Backend dependencies and Java version
+├── supabase/
+│   ├── config.toml               Supabase CLI project configuration
+│   └── migrations/               PostgreSQL schema migrations
 ├── docs/
 │   ├── UI_SPEC.md                Approved UI routes, screens, and API data shapes
 │   └── CAMPUSFLOW_PROJECT_DOCUMENTATION.md
@@ -47,12 +50,40 @@ The primary architecture and behavior references are [UI_SPEC.md](./UI_SPEC.md),
 ### Prerequisites
 
 - Java 17 (the project targets Java 17; verified locally with JDK 17.0.12).
-- Node.js and npm compatible with the installed frontend dependencies.
+- Node.js 20 or later and npm (the Supabase CLI requires Node.js 20 or later).
+- A Supabase project and its PostgreSQL connection details for hosted operation.
+- Running the local Supabase stack additionally requires Docker; Docker is not needed to link a hosted project or push migrations.
 - Internet access for the first Maven Wrapper/dependency download if artifacts are not cached. Maven Central resolution in the repair environment required preferring IPv6; this did not require deleting or replacing dependencies.
 
 The repository includes `mvnw.cmd`, so a global `mvn` command is not required.
 
 ### Start the backend (PowerShell)
+
+Install the repository-pinned Supabase CLI from the repository root:
+
+```powershell
+Set-Location C:\Users\om\Desktop\CampusFlow\extracted\CampusFlow
+npm install
+npx supabase --version
+```
+
+Create a Supabase project at [supabase.com/dashboard](https://supabase.com/dashboard), then copy the session-pooler settings from **Connect** into `backend/.env`. Start with the tracked template:
+
+```powershell
+Copy-Item .\backend\.env.example .\backend\.env
+```
+
+Set `DATABASE_URL` to the JDBC form of the Supabase session-pooler URL (port `5432`, database `postgres`, and `?sslmode=require`), `DB_USERNAME` to the pooler username, and `DB_PASSWORD` to the database password. Do not commit `backend/.env` or place these values in `frontend/.env`; Vite variables are public in the browser.
+
+Apply the checked-in schema migration before starting the API:
+
+```powershell
+npx supabase login
+npx supabase link --project-ref <your-project-ref>
+npx supabase db push
+```
+
+The first migration creates the `public.users` and `public.assignment_submissions` tables. It does not copy records from an old database. The CLI can apply the same migration to a hosted project; `supabase start` can be used for local Supabase development when Docker is installed.
 
 ```powershell
 Set-Location C:\Users\om\Desktop\CampusFlow\extracted\CampusFlow\backend
@@ -67,7 +98,21 @@ Check readiness:
 Invoke-RestMethod http://localhost:8081/api/health
 ```
 
-The local H2 console is available at http://localhost:8081/h2-console when the default profile is active. It is a development tool, not a production administration interface.
+The backend reads `backend/.env` when started from the `backend` directory. For deployments, inject the same settings into the backend hosting service's secret/environment manager.
+
+### Deploy the API on Render with Supabase PostgreSQL
+
+`render.yaml` defines a separate Spring Boot web service (`campusflow-api-supabase`) built from `backend/Dockerfile`. It does not provision or attach a Render database. Create or update it using the Render Dashboard's Blueprint flow and select this repository's `main` branch. Enter the requested environment values using **Connect > Session pooler** in the Supabase project:
+
+| Render variable | Value |
+|---|---|
+| `DATABASE_URL` | `jdbc:postgresql://<session-pooler-host>:5432/postgres?sslmode=require` |
+| `DB_USERNAME` | The session-pooler username shown in Supabase |
+| `DB_PASSWORD` | The Supabase database password |
+| `JWT_SECRET` | Generated by the Render Blueprint |
+| `CORS_ALLOWED_ORIGINS` | The deployed frontend's exact origin, without a path or trailing slash |
+
+Apply the schema migration to the Supabase project before starting the API. After deployment, verify `/api/health` and test the database-backed registration/login and assignment submission flows, then point the frontend's `VITE_API_BASE_URL` to the new API. Do not remove the previous Render PostgreSQL database or service until the Supabase-backed API passes verification and any required existing records have been migrated. Render database deletion permanently removes its data.
 
 ### Start the frontend (PowerShell)
 
@@ -95,6 +140,20 @@ All role-prefixed routes require a matching session role. The `campusflow_sessio
 | Administrator | `/admin` | Dashboard, users, course management, venues, events, notifications, profile, search |
 
 See `frontend/src/routes/routes.jsx` for the authoritative route definitions and `frontend/src/utils/navConfig.js` for sidebar entries.
+
+## Server and service connections
+
+| Component | Address / location | Connection |
+|---|---|---|
+| React/Vite frontend | `http://localhost:5173` | Browser calls the backend REST API using `VITE_API_BASE_URL`. |
+| Spring Boot REST API | `http://localhost:8081` (`/api`) | Serves login, registration, role-protected feature routes, and health checks. |
+| Supabase PostgreSQL | Project-specific host from Supabase **Connect** | The backend connects over TLS using JDBC and the `DB_USERNAME` / `DB_PASSWORD` secrets. |
+| Supabase CLI | `supabase/` configuration and migrations | Links this workspace to a Supabase project and applies SQL schema changes; it is not a runtime server dependency. |
+| AI assistant | `/api/assistant/chat` | Currently returns a local placeholder response; no live OpenAI server request is implemented even if `OPENAI_API_KEY` is set. |
+
+The runtime data path is **Browser → Spring Boot API → Supabase PostgreSQL**. The frontend does not connect directly to Supabase, and this repository does not configure Supabase Auth, Storage, Realtime, or any other database/server provider. The migration enables row-level security and revokes the browser-facing Supabase roles on the app tables; the server connects privately using the database credentials. Supabase stores the app's current JPA entities; most other feature screens still return sample data.
+
+Useful links: [Supabase Dashboard](https://supabase.com/dashboard), [Supabase CLI guide](https://supabase.com/docs/guides/cli), [PostgreSQL connection options](https://supabase.com/docs/guides/database/connecting-to-postgres), and the local API health endpoint at [http://localhost:8081/api/health](http://localhost:8081/api/health) after the API starts.
 
 ## API reference
 
@@ -126,7 +185,7 @@ The backend API prefix is `/api`. Except for login, registration, and health, re
 | `GET /api/users/me`, `PUT /api/users/me`, `PUT /api/users/me/password` | Authenticated | Profile GET returns a fixed sample user; updates return acknowledgement only |
 | `GET /api/admin/users`, `PATCH /api/admin/users/{id}/approve`, `/reject` | Admin | User list is sample data; approval/rejection routes return acknowledgement only |
 | `GET /api/venues`, `POST /api/venues` | Authenticated | Venue list is sample data; create route returns acknowledgement only |
-| `POST /api/assistant/chat` | Authenticated | Uses configured AI integration when available; otherwise returns the implementation's fallback response |
+| `POST /api/assistant/chat` | Authenticated | Returns a placeholder response; no external AI server is called |
 | `GET /api/search` | Authenticated | Search behavior is limited to the implemented in-memory/sample data |
 
 The controller mappings in source are authoritative if this table and implementation diverge. Role rules are defined in `backend/src/main/java/com/anurag/aiml/security/SecurityConfig.java`.
@@ -149,7 +208,7 @@ The controller mappings in source are authoritative if this table and implementa
 | Faculty assignment creation/edit/review | Not implemented | The faculty page includes controls and sample rows, but no persistent assignment creation, editing, submission review, or grading workflow is wired. |
 | Admin user approvals | Placeholder | Approve/reject endpoints acknowledge the request but do not change user status. |
 | Venues and broader course administration | Placeholder/local UI | Venue creation acknowledges but does not persist. Course create/edit/delete are not a complete backend-backed management flow. |
-| AI assistant/search | Limited | Availability depends on configuration and current implementation; these are not a substitute for persisted campus data or a fully integrated institutional search. |
+| AI assistant/search | Limited | The assistant returns placeholder text and search uses sample data; neither is a live external service integration. |
 | Demo mode | Preview only | Role-based UI preview uses local sample state and cannot be used to verify server persistence. |
 
 Do not use demo content as real academic, attendance, grading, event, placement, or account-approval data. Complete these workflows with domain entities, repositories, validation, ownership/role checks, and end-to-end tests before institutional use.
@@ -158,7 +217,7 @@ Do not use demo content as real academic, attendance, grading, event, placement,
 
 The backend uses Spring Data JPA. `User` records store the account and role data; `AssignmentSubmission` records store assignment ID, student, text content, and submission timestamp. A unique database constraint prevents two submissions for the same assignment/student pair. Assignment definitions themselves are currently hardcoded in `CampusFlowService`, not persisted entities.
 
-The local `DemoDataInitializer` seeds four development accounts with password `password`:
+The `DemoDataInitializer` can seed four development accounts with password `password` when `APP_DEMO_DATA_ENABLED=true`:
 
 | Role | Email |
 |---|---|
@@ -167,13 +226,13 @@ The local `DemoDataInitializer` seeds four development accounts with password `p
 | Placement officer | `placement@campusflow.test` |
 | Admin | `admin@campusflow.test` |
 
-These are development-only credentials. Remove or replace the initializer and rotate all credentials before deployment. The local default H2 database is in-memory and is not durable across process restarts. It is appropriate only for local development and disposable verification.
+Demo seeding is disabled by default so connecting a persistent Supabase project does not create accounts with known passwords. These are development-only credentials; only enable them against a disposable development database, and never deploy them to an institution.
 
 ## Configuration and deployment
 
 ### Local configuration
 
-`backend/src/main/resources/application.yml` configures H2, port `${PORT:8081}`, JWT expiration, and local CORS defaults for `http://localhost:5173` and `http://127.0.0.1:5173`. The local JWT secret fallback exists for development only.
+`backend/src/main/resources/application.yml` configures PostgreSQL from `DATABASE_URL`, `DB_USERNAME`, and `DB_PASSWORD`, port `${PORT:8081}`, JWT expiration, and local CORS defaults for `http://localhost:5173` and `http://127.0.0.1:5173`. Hibernate uses schema validation; apply the Supabase SQL migration before the first API startup. The local JWT secret fallback exists for development only.
 
 `frontend/.env.example` documents:
 
@@ -184,25 +243,23 @@ VITE_DEMO_MODE=false
 
 ### Production configuration
 
-Activate the Spring `prod` profile and inject all secrets through the hosting provider's environment/secret manager. Do not commit `.env` files, passwords, signing keys, or database credentials.
+The backend's `prod` profile also uses PostgreSQL. Inject all secrets through the hosting provider's environment/secret manager. Do not commit `.env` files, passwords, signing keys, or database credentials.
 
 | Variable | Required | Purpose |
 |---|---|---|
-| `SPRING_PROFILES_ACTIVE=prod` | Yes | Activates MySQL production configuration |
-| `DB_HOST` | Yes | Managed MySQL host |
-| `DB_USERNAME` | Yes | Database username |
-| `DB_PASSWORD` | Yes | Database password |
+| `SPRING_PROFILES_ACTIVE=prod` | Yes for the bundled Docker image | Activates production secrets/CORS settings |
+| `DATABASE_URL` | Yes | JDBC URL for the Supabase PostgreSQL session pooler, including `?sslmode=require` |
+| `DB_USERNAME` | Yes | Supabase PostgreSQL/pooler username |
+| `DB_PASSWORD` | Yes | Supabase database password |
 | `JWT_SECRET` | Yes | Strong, random signing secret; keep outside source control |
 | `CORS_ALLOWED_ORIGINS` | Yes | Comma-separated exact deployed frontend origins |
-| `DB_PORT` | No | Defaults to `22573` in current production YAML; set to provider's actual port |
-| `DB_NAME` | No | Defaults to `campusflow_ai` |
 | `JWT_EXPIRY_MS` | No | Defaults to `3600000` milliseconds |
 | `PORT` | No | HTTP listener port; defaults to `8081` |
 | `VITE_API_BASE_URL` | Frontend build | Absolute deployed API base URL ending in `/api` |
 | `VITE_DEMO_MODE` | Frontend build | Set to `false` for real API operation |
-| `OPENAI_API_KEY` | Optional | AI integration secret, if that integration is enabled |
+| `OPENAI_API_KEY` | Not currently used | The assistant endpoint is a placeholder; this setting does not call OpenAI |
 
-The production profile uses MySQL and `ddl-auto: update`; review and replace automatic schema updates with controlled migrations before a production launch. Configure backups, TLS, database access restrictions, monitoring, and a durable database. The bundled Dockerfile builds the backend with Java 17 and activates the `prod` profile; provide its environment variables at runtime and expose the configured HTTP port. Build with:
+The application uses Supabase PostgreSQL with TLS and validates the schema rather than changing it automatically. Apply migrations with the Supabase CLI. Configure database backups, access restrictions, monitoring, and production secrets. The bundled Dockerfile builds the backend with Java 17 and activates the `prod` profile; provide its environment variables at runtime and expose the configured HTTP port. Build with:
 
 ```powershell
 Set-Location C:\Users\om\Desktop\CampusFlow\extracted\CampusFlow\backend
@@ -213,11 +270,11 @@ This repository has not been deployed to a hosting provider. The Docker image an
 
 ## Verification
 
-The following checks have been run in the local development environment:
+The following checks were run against the prior H2-backed configuration before the Supabase-only change:
 
 - Backend: `.\mvnw.cmd -B -ntp clean test` — **passed**, 3 tests, 0 failures/errors (assignment submission service tests included).
 - Frontend: `npm run build` — **passed** after the assignment and course UI changes.
-- Backend startup: Spring Boot started with Java 17 and H2 on port 8081. A later startup attempt initially collided with another process already listening on 8081; the active process was identified rather than terminating an unknown process.
+- Backend startup: Spring Boot started with Java 17 and H2 on port 8081. This historical check does not verify a Supabase connection.
 - Registration/login/CORS smoke checks: the API accepted a student registration and login, and the `127.0.0.1:5173` registration preflight returned the configured allow-origin header.
 - Assignment API smoke checks: a saved submission was readable only through the authenticated student's endpoint and changed that student's assignment status to `SUBMITTED`. Duplicate submission returned **409**, blank/overlong and past-due submissions returned **400**, and faculty submission was denied with **403**.
 - Browser smoke checks: signed in as the seeded student, loaded the six API-backed courses and opened the selected course detail modal, then submitted assignment text and confirmed its saved state/content appeared in the UI.
